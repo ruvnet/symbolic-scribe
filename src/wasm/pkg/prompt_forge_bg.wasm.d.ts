@@ -8,9 +8,11 @@ export const drift_report: (a: number, b: number, c: number, d: number, e: numbe
 export const firewall: (a: number, b: number, c: number, d: number, e: number) => void;
 export const optimize: (a: number, b: number, c: number, d: number, e: number) => void;
 export const rank_pareto: (a: number, b: number, c: number) => void;
+export const rescore: (a: number, b: number, c: number) => void;
 export const scrub_secrets: (a: number, b: number, c: number) => void;
 export const verify_receipt: (a: number, b: number, c: number, d: number, e: number) => void;
 export const version: (a: number) => void;
+export const weights: (a: number) => void;
 export const __wbindgen_add_to_stack_pointer: (a: number) => number;
 export const __wbindgen_export_0: (a: number, b: number) => number;
 export const __wbindgen_export_1: (a: number, b: number, c: number, d: number) => number;

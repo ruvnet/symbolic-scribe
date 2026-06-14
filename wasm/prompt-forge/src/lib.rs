@@ -344,6 +344,37 @@ pub fn count_tokens(text: &str) -> usize {
     token::count_tokens(text)
 }
 
+/// The canonical multi-objective weights (single source of truth for hosts that
+/// recompute composites from *measured* eval numbers).
+#[wasm_bindgen]
+pub fn weights() -> String {
+    serde_json::json!({
+        "accuracy": Score::W_ACCURACY,
+        "schema_validity": Score::W_SCHEMA,
+        "token_efficiency": Score::W_TOKEN,
+        "latency_efficiency": Score::W_LATENCY,
+        "safety_margin": Score::W_SAFETY,
+        "cross_model_stability": Score::W_STABILITY,
+        "explainability": Score::W_EXPLAIN,
+    })
+    .to_string()
+}
+
+/// Recompute a `Score`'s composite from its (possibly host-overwritten)
+/// component fields, using the canonical weights. Lets the live eval matrix
+/// replace the static accuracy/schema/stability proxies with measured values
+/// and get a consistent composite back. Input/Output: `Score` JSON.
+#[wasm_bindgen]
+pub fn rescore(score_json: &str) -> String {
+    match serde_json::from_str::<Score>(score_json) {
+        Ok(mut s) => {
+            s.composite = s.composite();
+            serde_json::to_string(&s).unwrap_or_else(|e| err_json(&e.to_string()))
+        }
+        Err(e) => err_json(&e.to_string()),
+    }
+}
+
 /// Full static analysis → `Analysis` JSON (`prompt.ast.json`).
 #[wasm_bindgen]
 pub fn analyze(raw: &str, opts_json: &str) -> String {
@@ -483,6 +514,26 @@ mod tests {
             assert_eq!(verify_receipt(&receipt_json, "k"), "true");
             assert_eq!(verify_receipt(&receipt_json, "wrong"), "false");
         }
+    }
+
+    #[test]
+    fn weights_sum_to_one() {
+        let w: serde_json::Value = serde_json::from_str(&weights()).unwrap();
+        let sum: f64 = w.as_object().unwrap().values().map(|v| v.as_f64().unwrap()).sum();
+        assert!((sum - 1.0).abs() < 1e-9, "weights must sum to 1, got {sum}");
+    }
+
+    #[test]
+    fn rescore_recomputes_composite_from_measured() {
+        // Simulate the live eval overwriting accuracy upward.
+        let s = r#"{"accuracy":1.0,"schema_validity":1.0,"token_efficiency":0.5,
+            "latency_efficiency":0.5,"safety_margin":1.0,"cross_model_stability":1.0,
+            "explainability":0.5,"composite":0.0,"est_tokens":100,"est_cost_usd":0.0,
+            "est_latency_ms":0.0}"#;
+        let out: serde_json::Value = serde_json::from_str(&rescore(s)).unwrap();
+        let c = out["composite"].as_f64().unwrap();
+        // 0.25+0.20+0.15*0.5+0.15*0.5+0.10+0.10+0.05*0.5 = 0.825
+        assert!((c - 0.825).abs() < 1e-9, "got {c}");
     }
 
     #[test]

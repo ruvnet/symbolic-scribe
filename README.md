@@ -21,6 +21,12 @@ raw prompt → AST + intent + constraints → SynthLang compression
   prompt text leaves the browser for the core analysis.
 - **Multi-objective optimization** with a hard rule: a prompt is only "improved"
   if it beats baseline **without lowering accuracy, safety, or schema validity**.
+- **Live eval matrix** (`src/services/promptEval.ts`) closes the loop: it runs the
+  optimizer's Pareto-frontier candidates against real OpenRouter models over an
+  editable test suite, grades outputs (schema validity, assertions, refusals,
+  length), and **replaces the static accuracy/schema/cross-model-stability
+  proxies with measured numbers** — then re-ranks with the same weights. The
+  model call is injectable, so grading/aggregation is unit-tested offline.
 - **Drift report** proves numbers/entities/constraints survive compression.
 - **Prompt firewall** classifies injection / secret-exposure / tool-abuse risk
   and returns an allow / log / approve / block decision.

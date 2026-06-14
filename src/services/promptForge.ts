@@ -21,6 +21,8 @@ import init, {
   drift_report as wasmDrift,
   rank_pareto as wasmRankPareto,
   verify_receipt as wasmVerifyReceipt,
+  weights as wasmWeights,
+  rescore as wasmRescore,
   version as wasmVersion,
 } from "../wasm/pkg/prompt_forge.js";
 
@@ -292,6 +294,29 @@ export async function driftReport(original: string, transformed: string): Promis
 export async function rankPareto(candidates: Candidate[]): Promise<Candidate[]> {
   await initForge();
   return JSON.parse(wasmRankPareto(JSON.stringify(candidates))) as Candidate[];
+}
+
+export type Weights = Record<
+  | "accuracy"
+  | "schema_validity"
+  | "token_efficiency"
+  | "latency_efficiency"
+  | "safety_margin"
+  | "cross_model_stability"
+  | "explainability",
+  number
+>;
+
+/** The canonical multi-objective weights (sum to 1) — single source of truth. */
+export async function weights(): Promise<Weights> {
+  await initForge();
+  return JSON.parse(wasmWeights()) as Weights;
+}
+
+/** Recompute a Score's composite after overwriting components with measured values. */
+export async function rescore(score: Score): Promise<Score> {
+  await initForge();
+  return JSON.parse(wasmRescore(JSON.stringify(score))) as Score;
 }
 
 export async function verifyReceipt(receipt: Receipt, witnessKey: string): Promise<boolean> {

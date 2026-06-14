@@ -14,6 +14,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import MainNav from "../components/MainNav";
+import EvalPanel from "../components/EvalPanel";
 import { useToast } from "../components/ui/use-toast";
 import {
   initForge,
@@ -132,7 +133,7 @@ const Optimizer = () => {
   const [ruvectorOn, setRuvectorOn] = useState(false);
   const [busy, setBusy] = useState(false);
   const [forgeVersion, setForgeVersion] = useState("");
-  const [tab, setTab] = useState<"compiled" | "diff" | "candidates" | "drift" | "receipt">("compiled");
+  const [tab, setTab] = useState<"compiled" | "diff" | "candidates" | "drift" | "receipt" | "eval">("compiled");
   const { toast } = useToast();
   const debounceRef = useRef<number>();
 
@@ -476,7 +477,7 @@ const Optimizer = () => {
 
               {/* tabs */}
               <div className="flex gap-1 border-b border-console-green/10 text-xs">
-                {(["compiled", "diff", "candidates", "drift", "receipt"] as const).map((t) => (
+                {(["compiled", "diff", "candidates", "drift", "receipt", "eval"] as const).map((t) => (
                   <button
                     key={t}
                     onClick={() => setTab(t)}
@@ -574,6 +575,33 @@ const Optimizer = () => {
                   ))}
                   <div className="text-gray-500">issued {result.receipt.issued_at}</div>
                 </div>
+              )}
+
+              {tab === "eval" && (
+                <EvalPanel
+                  candidates={result.candidates}
+                  schemaExpected={Boolean(analysis?.schema.present || analysis?.intent.output_type === "json")}
+                  onComplete={(ev) => {
+                    const w = ev.ranked.find((r) => r.label === ev.winner);
+                    if (w) {
+                      record({
+                        prompt: w.text,
+                        composite: w.score.composite,
+                        accepted: w.accuracy >= 0.9,
+                        decision: decision?.decision ?? "allow",
+                        findings: decision?.findings.map((f) => f.code) ?? [],
+                        tokenReduction: result.token_reduction,
+                        bundleHash: result.receipt.bundle_hash,
+                      });
+                      setPriors(recall(raw));
+                      toast({
+                        title: "Eval complete",
+                        description: `Measured winner: ${ev.winner} · ${(w.accuracy * 100).toFixed(0)}% accuracy · recorded to memory.`,
+                        duration: 5000,
+                      });
+                    }
+                  }}
+                />
               )}
 
               {/* actions */}
