@@ -205,12 +205,18 @@ const Optimizer = () => {
       setResult(r);
       setTab("compiled");
       // Learn from this outcome: record it so future similar prompts recall it.
+      // Compute the firewall decision *synchronously for this exact prompt* — the
+      // debounced `decision` state can be stale or empty, which would record every
+      // outcome as allow/[] and silently flatten the firewall's feedback loop.
+      const prior = recall(raw);
+      const fw = await firewall(raw, { prior_failure_similarity: prior.priorFailureSimilarity });
+      setDecision(fw);
       record({
         prompt: raw,
         composite: r.optimized.score.composite,
         accepted: r.accepted,
-        decision: decision?.decision ?? "allow",
-        findings: decision?.findings.map((f) => f.code) ?? [],
+        decision: fw.decision,
+        findings: fw.findings.map((f) => f.code),
         tokenReduction: r.token_reduction,
         bundleHash: r.receipt.bundle_hash,
       });
@@ -428,7 +434,7 @@ const Optimizer = () => {
               <Cpu className="w-10 h-10 text-console-purple/40 mb-3" />
               <p className="max-w-sm text-sm">
                 Compile a prompt to see the optimized symbolic form, the Pareto candidate frontier, a meaning-preservation
-                drift report, and a cryptographically signed witness receipt.
+                drift report, and a tamper-evident witness checksum.
               </p>
             </div>
           ) : (
@@ -560,7 +566,7 @@ const Optimizer = () => {
               {tab === "receipt" && (
                 <div className="text-xs font-mono space-y-1.5 text-gray-300">
                   <div className="flex items-center gap-2 text-console-green">
-                    <Lock className="w-3.5 h-3.5" /> HMAC-SHA-256 witness · verifiable
+                    <Lock className="w-3.5 h-3.5" /> HMAC-SHA-256 witness · integrity checksum
                   </div>
                   {[
                     ["source", result.receipt.source_hash],

@@ -232,7 +232,13 @@ fn optimize_internal(raw: &str, opts: &Options) -> OptimizeResult {
                 .score
                 .est_tokens
                 .cmp(&candidates[b].score.est_tokens)
-                .then(candidates[b].score.composite.partial_cmp(&candidates[a].score.composite).unwrap())
+                .then(
+                    candidates[b]
+                        .score
+                        .composite
+                        .partial_cmp(&candidates[a].score.composite)
+                        .unwrap_or(std::cmp::Ordering::Equal),
+                )
         })
         .copied();
 

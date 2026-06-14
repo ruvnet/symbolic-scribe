@@ -30,3 +30,6 @@ aider*
 # Rust / WASM build artifacts (the generated src/wasm/pkg IS committed)
 wasm/prompt-forge/target
 
+# Live benchmark proofs — non-deterministic + carry per-run USD cost data
+bench/*.json
+

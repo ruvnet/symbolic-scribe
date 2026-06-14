@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "generator": "0.1.0",
+  "template": "vertical:repo-maintainer",
+  "template_version": "0.0.0",
+  "vars": {
+    "name": "symbolic-scribe-harness",
+    "description": "My AI agent harness",
+    "host": "claude-code"
+  },
+  "hosts": [
+    "claude-code"
+  ],
+  "files": {
+    ".claude/commands/doctor.md": "2f1475fa0ed34729cb2ed9d6cecf29e99781da0a56afef133361e3ff0a17bb52",
+    ".claude/commands/release-check.md": "9b1a77411d9b4eaf8d26a5360f3f568530e47de6915d5a03a684a4b79bfdcc14",
+    ".claude/commands/repo-triage.md": "d4d2e75a18adbaa2dc6a8123ab57765a29ffc52196600b6b29d22798f68df171",
+    ".claude/settings.json": "f229d0a6abb6bdfc83905d87e38e3e45049ceab40547354cf909e6b18b4c6269",
+    ".claude/skills/memory-inspect/SKILL.md": "996b09e2dd12f68a589d94de0cbaef1522a30c912157cbbd6557abd3c4fd1ff3",
+    ".claude/skills/plan-change/SKILL.md": "84e1c44ca264b999ebf80cd8fa0e5ebf554275bbd8023b1530ad053a44482e30",
+    ".claude-plugin/plugin.json": "ea5ae48c453765278b841de2edf1bf643ff37a2513af68093f896db6eb472d2a",
+    "CLAUDE.md": "86ff118642abdf246e1912e9525a9d2ec5e09c20c62afeb39982f338e4eb3b13",
+    "package.json": "c3447edfb9e272df6770b146bb590432cede958b64662c4031f0fe911ea03e40",
+    "README.md": "27f567387ccea69794ff973f54422c0f8f7e984857f69e14727fb780fc7fd95f",
+    "src/agents/benchmarker.ts": "c66ec48b5ac34917ebed57cef5841b294c9fdf277c2afcd47498946f0f5193e3",
+    "src/agents/maintainer.ts": "a8ef4acaf63705ba26faeffd1a9633eacce029bebaa3661e5d83bcd3ba6043ca",
+    "src/agents/release.ts": "cbe319532fe5554d314576e81278365b46c6f7340d343264d10b15228343b4b9",
+    "src/agents/security.ts": "bc2397bc02c0151507ae3046c29db1d898e9040b1613f2a192bca95889926279",
+    "src/init.ts": "7c8592cec00056f126ed8cad416f0472f2cc7b5f5162ea2480d2ea09a4f41e08"
+  },
+  "generated_at": "2026-06-14T23:41:40.107Z",
+  "meta": {
+    "surface": "cli"
+  }
+}

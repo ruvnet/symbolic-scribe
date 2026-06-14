@@ -90,6 +90,40 @@ describe("promptEval — aggregation", () => {
     expect(ev.score.composite).toBeGreaterThan(0);
     expect(ev.score.composite).toBeLessThanOrEqual(1);
   });
+
+  it("schema_validity reflects structural checks only, decoupled from accuracy", () => {
+    // Both cells fail an overall check (accuracy 0) but pass their structural
+    // check (schema_validity 1). The old aggregation made these identical.
+    const mk = (id: string): CellResult => ({
+      candidate: "c",
+      model: "m1",
+      testCaseId: id,
+      output: "{}",
+      latencyMs: 1,
+      promptTokens: 1,
+      completionTokens: 1,
+      costUsd: 0,
+      checksPassed: 1,
+      checksTotal: 2,
+      schemaChecksPassed: 1,
+      schemaChecksTotal: 1,
+      pass: false,
+      failures: ["non-schema check failed"],
+    });
+    const ev = aggregateCandidate("c", "text", [mk("t1"), mk("t2")], baseScore(), W, 4000);
+    expect(ev.accuracy).toBe(0);
+    expect(ev.score.schema_validity).toBe(1);
+  });
+
+  it("schema_validity falls back to the static estimate when no structural checks exist", () => {
+    const noSchema: CellResult[] = [cell("m1", "t1", true), cell("m1", "t2", true)].map((c) => ({
+      ...c,
+      schemaChecksPassed: 0,
+      schemaChecksTotal: 0,
+    }));
+    const ev = aggregateCandidate("c", "text", noSchema, baseScore({ schema_validity: 0.42 }), W, 4000);
+    expect(ev.score.schema_validity).toBe(0.42);
+  });
 });
 
 describe("promptEval — runEval re-ranks by measured behavior", () => {

@@ -10,6 +10,7 @@
     "build:wasm": "bash wasm/build.sh",
     "test:wasm": "cd wasm/prompt-forge && cargo test",
     "bench:wasm": "cd wasm/prompt-forge && cargo run --release --example bench",
+    "bench:fusion": "node scripts/bench-fusion.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "jest",

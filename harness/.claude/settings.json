@@ -1,0 +1,44 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx symbolic-scribe-harness*)",
+      "mcp__symbolic-scribe-harness__*",
+      "mcp__code_index__*",
+      "Bash(npm test*)",
+      "Bash(npm run*)",
+      "Bash(git diff*)",
+      "Bash(git status*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(cargo bench*)",
+      "Bash(cargo test*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Bash(git push*)",
+      "Bash(rm -rf*)",
+      "Bash(npm publish*)"
+    ]
+  },
+  "mcpServers": {
+    "symbolic-scribe-harness": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "symbolic-scribe-harness@latest",
+        "mcp",
+        "start"
+      ]
+    },
+    "code_index": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "symbolic-scribe-harness@latest",
+        "mcp",
+        "index"
+      ]
+    }
+  }
+}

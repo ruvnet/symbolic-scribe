@@ -67,6 +67,9 @@ export interface CellResult {
   costUsd: number;
   checksPassed: number;
   checksTotal: number;
+  /** Of this cell's checks, how many were structural (json_valid/has_field). */
+  schemaChecksPassed?: number;
+  schemaChecksTotal?: number;
   pass: boolean; // all checks passed
   failures: string[];
 }
@@ -195,15 +198,29 @@ export function runCheck(output: string, check: Check): [boolean, string?] {
   }
 }
 
-export function gradeOutput(output: string, checks: Check[]): { passed: number; total: number; failures: string[] } {
+/** A check is "structural" if it asserts JSON shape (drives schema_validity). */
+function isSchemaCheck(c: Check): boolean {
+  return c.kind === "json_valid" || c.kind === "has_field";
+}
+
+export function gradeOutput(
+  output: string,
+  checks: Check[],
+): { passed: number; total: number; failures: string[]; schemaPassed: number; schemaTotal: number } {
   const failures: string[] = [];
   let passed = 0;
+  let schemaPassed = 0;
+  let schemaTotal = 0;
   for (const c of checks) {
     const [ok, msg] = runCheck(output, c);
-    if (ok) passed++;
-    else if (msg) failures.push(msg);
+    const schema = isSchemaCheck(c);
+    if (schema) schemaTotal++;
+    if (ok) {
+      passed++;
+      if (schema) schemaPassed++;
+    } else if (msg) failures.push(msg);
   }
-  return { passed, total: checks.length, failures };
+  return { passed, total: checks.length, failures, schemaPassed, schemaTotal };
 }
 
 /** Stability across models: 1 = identical pass-rates, 0 = maximal disagreement. */
@@ -245,13 +262,14 @@ export function aggregateCandidate(
   const passes = cells.filter((c) => c.pass).length;
   const accuracy = passes / total;
 
-  const schemaCells = cells.filter((c) =>
-    // cells whose test had a json_valid/has_field check contribute to schema.
-    c.checksTotal > 0,
-  );
-  // Schema validity = fraction of cells whose JSON expectations all held. We
-  // approximate via cells that fully passed when any structural check existed.
-  const schemaValidity = schemaCells.length ? passes / schemaCells.length : staticScore.schema_validity;
+  // Schema validity = fraction of *structural* checks (json_valid/has_field)
+  // that passed, across all cells. Falls back to the static estimate only when
+  // the suite contained no structural checks at all. (Previously this divided
+  // the all-checks pass count by the count of cells with any check, which made
+  // it numerically identical to accuracy and ignored which checks were schema.)
+  const schemaPassed = cells.reduce((a, c) => a + (c.schemaChecksPassed ?? 0), 0);
+  const schemaTotal = cells.reduce((a, c) => a + (c.schemaChecksTotal ?? 0), 0);
+  const schemaValidity = schemaTotal > 0 ? schemaPassed / schemaTotal : staticScore.schema_validity;
 
   const byModel: Record<string, { pass: number; total: number }> = {};
   for (const c of cells) {
@@ -354,6 +372,8 @@ export async function runEval(
         costUsd: cost,
         checksPassed: g.passed,
         checksTotal: g.total,
+        schemaChecksPassed: g.schemaPassed,
+        schemaChecksTotal: g.schemaTotal,
         pass: g.total > 0 && g.passed === g.total,
         failures: g.failures,
       };
@@ -369,6 +389,8 @@ export async function runEval(
         costUsd: 0,
         checksPassed: 0,
         checksTotal: tc.checks.length,
+        schemaChecksPassed: 0,
+        schemaChecksTotal: tc.checks.filter(isSchemaCheck).length,
         pass: false,
         failures: [`call failed: ${String(e)}`],
       };
