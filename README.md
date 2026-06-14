@@ -25,6 +25,13 @@ raw prompt → AST + intent + constraints → SynthLang compression
 - **Prompt firewall** classifies injection / secret-exposure / tool-abuse risk
   and returns an allow / log / approve / block decision.
 - **Signed receipts** make every winning prompt auditable.
+- **Learning memory** (`src/services/promptMemory.ts`) records every outcome and
+  recalls similar prior cases, feeding `prior_failure_similarity` back into the
+  firewall — so prompts resembling past attacks score higher risk over time. The
+  similarity backend is swappable: a deterministic local embedder + cosine works
+  offline today, and [`ruvnet/RuVector`](https://github.com/ruvnet/RuVector)
+  (in-browser HNSW + ReasoningBank) drops in for O(log n) recall and trajectory
+  learning at scale.
 
 Build & test the core:
 

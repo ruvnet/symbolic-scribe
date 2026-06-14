@@ -28,6 +28,7 @@ import {
   type Decision,
   type Score,
 } from "../services/promptForge";
+import { recall, record, clearMemory, type PriorStats } from "../services/promptMemory";
 
 const SAMPLE_PROMPT = `Hey so I basically need you to kind of help me out here. I would like you to please please take a look at the customer support ticket below and just simply summarize what the main issue is. Please make sure to be really concise. Also please make sure to be concise. It is important that you do not make up any details that are not actually in the ticket. In order to be helpful, try to identify the sentiment too. Make it good.
 
@@ -118,6 +119,7 @@ const Optimizer = () => {
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [result, setResult] = useState<OptimizeResult | null>(null);
   const [decision, setDecision] = useState<Decision | null>(null);
+  const [priors, setPriors] = useState<PriorStats | null>(null);
   const [busy, setBusy] = useState(false);
   const [forgeVersion, setForgeVersion] = useState("");
   const [tab, setTab] = useState<"compiled" | "diff" | "candidates" | "drift" | "receipt">("compiled");
@@ -142,7 +144,14 @@ const Optimizer = () => {
     }
     try {
       setLiveTokens(countTokens(text));
-      const [a, d] = await Promise.all([analyze(text), firewall(text)]);
+      // Memory recall feeds the learning signal into the firewall: a prompt that
+      // resembles past failures/attacks scores higher risk over time.
+      const prior = recall(text);
+      setPriors(prior);
+      const [a, d] = await Promise.all([
+        analyze(text),
+        firewall(text, { prior_failure_similarity: prior.priorFailureSimilarity }),
+      ]);
       setAnalysis(a);
       setDecision(d);
     } catch {
@@ -163,6 +172,17 @@ const Optimizer = () => {
       const r = await optimize(raw, { witness_key: "symbolic-scribe-demo", token_budget: 600 });
       setResult(r);
       setTab("compiled");
+      // Learn from this outcome: record it so future similar prompts recall it.
+      record({
+        prompt: raw,
+        composite: r.optimized.score.composite,
+        accepted: r.accepted,
+        decision: decision?.decision ?? "allow",
+        findings: decision?.findings.map((f) => f.code) ?? [],
+        tokenReduction: r.token_reduction,
+        bundleHash: r.receipt.bundle_hash,
+      });
+      setPriors(recall(raw));
       toast({
         title: r.accepted ? "Prompt improved ✓" : "No improvement accepted",
         description: r.accepted
@@ -299,6 +319,59 @@ const Optimizer = () => {
                 <div className="text-xs text-red-400 border border-red-500/30 rounded p-2 bg-red-500/5">
                   ⚠ Incident created — risk above block threshold. Quarantine before model execution.
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* Learning memory (RuVector-ready) */}
+          {priors && (
+            <div className="glass-panel p-4 space-y-3 animate-matrix-fade">
+              <div className="flex items-center justify-between">
+                <h3 className="text-console-cyan flex items-center gap-2">
+                  <Cpu className="w-4 h-4 text-console-purple" /> Prompt Memory
+                  <span className="text-[10px] text-gray-500">{priors.size} recorded</span>
+                </h3>
+                {priors.size > 0 && (
+                  <button
+                    className="console-button py-0.5 px-2 text-xs"
+                    onClick={() => {
+                      clearMemory();
+                      setPriors(recall(raw));
+                    }}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">prior_failure_similarity</span>
+                  <span className={`font-mono ${priors.priorFailureSimilarity > 0.6 ? "text-red-400" : "text-gray-400"}`}>
+                    {priors.priorFailureSimilarity.toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">prior_win_similarity</span>
+                  <span className="font-mono text-console-green">{priors.priorWinSimilarity.toFixed(2)}</span>
+                </div>
+              </div>
+              {priors.nearest.length > 0 ? (
+                <ul className="space-y-1 text-xs">
+                  {priors.nearest.slice(0, 3).map((r, i) => (
+                    <li key={i} className="flex items-center gap-2 text-gray-400">
+                      <span className="font-mono text-console-purple w-10">{r.similarity.toFixed(2)}</span>
+                      <span className={`font-mono w-12 ${r.entry.decision === "allow" ? "text-console-green" : "text-red-400"}`}>
+                        {r.entry.accepted ? "win" : r.entry.decision === "allow" ? "—" : "risk"}
+                      </span>
+                      <span className="truncate flex-1">{r.entry.preview}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-gray-600">
+                  No prior cases yet. Compile prompts to build memory — similar future prompts will recall these
+                  outcomes and adjust risk. Swap the backend to RuVector for HNSW recall + ReasoningBank learning at scale.
+                </p>
               )}
             </div>
           )}

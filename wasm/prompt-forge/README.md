@@ -117,6 +117,9 @@ PromptOps platform without depending on it:
 
 - `cross_model_stability` / `accuracy` → overwritten by a live **eval harness**.
 - `prior_failure_similarity` (firewall ctx) → fed by a **vector store** of past
-  incidents (e.g. embeddings via transformers.js / ruVector).
-- `RouteHint` → consumed by a **model router**.
+  incidents. Wired in `src/services/promptMemory.ts`: a local embedder + cosine
+  by default, swappable to [`ruvnet/RuVector`](https://github.com/ruvnet/RuVector)
+  in-browser HNSW (`ruvector-wasm`) for O(log n) recall and ReasoningBank
+  trajectory learning.
+- `RouteHint` → consumed by a **model router** (e.g. RuVector `HnswRouterWasm`).
 - witness receipts → chained by an external **signing / audit** service.
