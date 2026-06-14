@@ -39,9 +39,20 @@ impl Compressed {
 /// Filler phrases that add tokens but no instruction. Order matters: longer
 /// phrases first so they win over their substrings.
 const FILLER: &[(&str, &str)] = &[
+    ("i would just like you to ", ""),
     ("i would like you to ", ""),
+    ("i just want you to ", ""),
     ("i want you to ", ""),
+    ("i just need you to ", ""),
     ("i need you to ", ""),
+    ("i would really appreciate it if you could ", ""),
+    ("if you could please ", ""),
+    ("if you could ", ""),
+    ("go ahead and ", ""),
+    ("feel free to ", ""),
+    ("i would like for you to ", ""),
+    ("what i need is for you to ", ""),
+    ("in a way that is ", ""),
     ("please make sure to ", ""),
     ("please make sure that you ", ""),
     ("make sure that you ", ""),
@@ -162,9 +173,19 @@ fn strip_filler(s: &str) -> String {
             if is_protected(line) {
                 return line.to_string();
             }
+            // Cascade the filler pass until stable: removing one phrase can
+            // expose another (e.g. "I would just like you to" → after "just" →
+            // "I would like you to" → removed on the next pass). Capped to keep
+            // it bounded and deterministic.
             let mut work = line.to_string();
-            for (from, to) in FILLER {
-                work = replace_ci_word(&work, from, to);
+            for _ in 0..4 {
+                let before = work.clone();
+                for (from, to) in FILLER {
+                    work = replace_ci_word(&work, from, to);
+                }
+                if work == before {
+                    break;
+                }
             }
             // Re-capitalize the first letter if we stripped a leading filler.
             capitalize_first(&work)

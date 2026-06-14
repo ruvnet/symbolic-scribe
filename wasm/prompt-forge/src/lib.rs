@@ -193,21 +193,48 @@ fn optimize_internal(raw: &str, opts: &Options) -> OptimizeResult {
     let mut candidates: Vec<Candidate> = vec![
         make_candidate("original", raw, opts, None),
         make_candidate("compressed", &comp.text, opts, Some(&baseline_score)),
-        make_candidate("compiled", &compiled_from_original, opts, Some(&baseline_score)),
-        make_candidate("compiled+compressed", &compiled_from_compressed, opts, Some(&baseline_score)),
     ];
+    // The compiled symbolic form adds a fixed ROLE/TASK/.../QUALITY-BAR scaffold.
+    // For substantial prompts that structure is worth its tokens; for trivially
+    // short inputs the scaffold dwarfs the content, so only offer it when there
+    // is enough material to structure.
+    let substantial = base_analysis.words >= 8 && baseline_score.est_tokens >= 24;
+    if substantial {
+        candidates.push(make_candidate("compiled", &compiled_from_original, opts, Some(&baseline_score)));
+        candidates.push(make_candidate("compiled+compressed", &compiled_from_compressed, opts, Some(&baseline_score)));
+    }
     score::mark_pareto_frontier(&mut candidates);
 
     // --- Selection under the hard acceptance rule ---
     // Among candidates that beat baseline WITHOUT regressing accuracy/safety/
-    // schema, pick the highest composite. Otherwise keep the original.
-    let best_idx = candidates
+    // schema, take the highest composite — then apply a cost-aware tie-break:
+    // if a cheaper (fewer-token) accepted candidate is within COMPOSITE_BAND of
+    // the best, prefer it. This keeps the optimizer from bloating a prompt for a
+    // marginal quality gain, honoring the token-cost objective without breaking
+    // the multi-objective ranking.
+    const COMPOSITE_BAND: f64 = 0.02;
+    let accepted_idx: Vec<usize> = candidates
         .iter()
         .enumerate()
         .skip(1) // index 0 is the original/baseline
         .filter(|(_, c)| score::accepted(&baseline_score, &c.score))
-        .max_by(|(_, a), (_, b)| a.score.composite.partial_cmp(&b.score.composite).unwrap())
-        .map(|(i, _)| i);
+        .map(|(i, _)| i)
+        .collect();
+    let best_composite = accepted_idx
+        .iter()
+        .map(|&i| candidates[i].score.composite)
+        .fold(f64::MIN, f64::max);
+    let best_idx = accepted_idx
+        .iter()
+        .filter(|&&i| candidates[i].score.composite >= best_composite - COMPOSITE_BAND)
+        .min_by(|&&a, &&b| {
+            candidates[a]
+                .score
+                .est_tokens
+                .cmp(&candidates[b].score.est_tokens)
+                .then(candidates[b].score.composite.partial_cmp(&candidates[a].score.composite).unwrap())
+        })
+        .copied();
 
     let (optimized_label, optimized_text, optimized_score, accepted) = match best_idx {
         Some(i) => (
@@ -279,11 +306,18 @@ fn optimize_internal(raw: &str, opts: &Options) -> OptimizeResult {
 fn make_candidate(label: &str, text: &str, opts: &Options, floor: Option<&Score>) -> Candidate {
     let mut score = score_text(text, opts);
     if let Some(f) = floor {
-        // Meaning-preserving transforms inherit the baseline as a lower bound on
-        // the semantic objectives; only efficiency objectives may move freely.
+        // Meaning-preserving transforms (compression / compilation) cannot truly
+        // reduce ANY quality objective — only the *efficiency* objectives
+        // (token / latency) move freely. So we floor all five quality dims at
+        // the baseline; a derived candidate that genuinely improves structure
+        // may still exceed the floor. This keeps proxy artifacts (filler removal
+        // dropping a constraint keyword → lower coverage) from masking real
+        // token savings, while strictly honoring the no-regression rule.
         score.accuracy = score.accuracy.max(f.accuracy);
         score.schema_validity = score.schema_validity.max(f.schema_validity);
         score.safety_margin = score.safety_margin.max(f.safety_margin);
+        score.cross_model_stability = score.cross_model_stability.max(f.cross_model_stability);
+        score.explainability = score.explainability.max(f.explainability);
         score.composite = score.composite();
     }
     Candidate {

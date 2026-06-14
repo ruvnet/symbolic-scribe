@@ -25,7 +25,21 @@ wasm-bindgen "$WASM" \
   --target web \
   --omit-default-module-path
 
+# Post-optimize with wasm-opt (binaryen) if available — shrinks size and speeds
+# execution. Optional: the build still succeeds without it.
+WASM_OUT="$OUT_DIR/prompt_forge_bg.wasm"
+if command -v wasm-opt >/dev/null 2>&1; then
+  BEFORE=$(wc -c < "$WASM_OUT")
+  echo "▶ Optimizing with wasm-opt -O3…"
+  wasm-opt -O3 --enable-bulk-memory "$WASM_OUT" -o "$WASM_OUT.opt"
+  mv "$WASM_OUT.opt" "$WASM_OUT"
+  AFTER=$(wc -c < "$WASM_OUT")
+  printf "  %d → %d bytes (%d%% smaller)\n" "$BEFORE" "$AFTER" "$(( (BEFORE - AFTER) * 100 / BEFORE ))"
+else
+  echo "▶ wasm-opt not found — skipping (install binaryen for a smaller artifact)."
+fi
+
 # Report the final artifact size.
-SIZE=$(wc -c < "$OUT_DIR/prompt_forge_bg.wasm")
+SIZE=$(wc -c < "$WASM_OUT")
 printf "✓ Done. wasm artifact: %s (%d bytes, %d KB)\n" \
-  "$OUT_DIR/prompt_forge_bg.wasm" "$SIZE" "$((SIZE / 1024))"
+  "$WASM_OUT" "$SIZE" "$((SIZE / 1024))"
