@@ -8,6 +8,7 @@ import Settings from "./pages/Settings";
 import Templates from "./pages/Templates";
 import Documentation from "./pages/Documentation";
 import About from "./pages/About";
+import Optimizer from "./pages/Optimizer";
 
 const queryClient = new QueryClient();
 
@@ -19,6 +20,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/optimize" element={<Optimizer />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/templates" element={<Templates />} />
           <Route path="/docs" element={<Documentation />} />

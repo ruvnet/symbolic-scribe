@@ -26,3 +26,7 @@ dist-ssr
 .aider*
 *cache*
 aider*
+
+# Rust / WASM build artifacts (the generated src/wasm/pkg IS committed)
+wasm/prompt-forge/target
+
