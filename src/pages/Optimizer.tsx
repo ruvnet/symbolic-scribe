@@ -27,8 +27,16 @@ import {
   type OptimizeResult,
   type Decision,
   type Score,
+  type RouteHint,
 } from "../services/promptForge";
 import { recall, record, clearMemory, type PriorStats } from "../services/promptMemory";
+import {
+  initMemoryBackend,
+  enableRuVector,
+  disableRuVector,
+  ruvectorActive,
+} from "../services/ruvectorBackend";
+import { refineRoute, reinforce } from "../services/ruvectorRouter";
 
 const SAMPLE_PROMPT = `Hey so I basically need you to kind of help me out here. I would like you to please please take a look at the customer support ticket below and just simply summarize what the main issue is. Please make sure to be really concise. Also please make sure to be concise. It is important that you do not make up any details that are not actually in the ticket. In order to be helpful, try to identify the sentiment too. Make it good.
 
@@ -120,20 +128,41 @@ const Optimizer = () => {
   const [result, setResult] = useState<OptimizeResult | null>(null);
   const [decision, setDecision] = useState<Decision | null>(null);
   const [priors, setPriors] = useState<PriorStats | null>(null);
+  const [routeHint, setRouteHint] = useState<RouteHint | null>(null);
+  const [ruvectorOn, setRuvectorOn] = useState(false);
   const [busy, setBusy] = useState(false);
   const [forgeVersion, setForgeVersion] = useState("");
   const [tab, setTab] = useState<"compiled" | "diff" | "candidates" | "drift" | "receipt">("compiled");
   const { toast } = useToast();
   const debounceRef = useRef<number>();
 
-  // Initialize wasm once.
+  // Initialize wasm once, and honor any persisted RuVector preference.
   useEffect(() => {
     initForge()
       .then(() => setForgeVersion(version()))
       .catch(() =>
         toast({ title: "WASM load failed", description: "Run `npm run build:wasm` first.", duration: 5000 }),
       );
+    initMemoryBackend().then(() => setRuvectorOn(ruvectorActive()));
   }, [toast]);
+
+  const toggleRuvector = async () => {
+    if (ruvectorOn) {
+      disableRuVector();
+      setRuvectorOn(false);
+      toast({ title: "RuVector disabled", description: "Reverted to the local memory backend.", duration: 3000 });
+    } else {
+      const ok = await enableRuVector();
+      setRuvectorOn(ok);
+      toast({
+        title: ok ? "RuVector enabled" : "RuVector unavailable",
+        description: ok
+          ? "Memory recall + routing now use ruvector-wasm (HNSW/flat)."
+          : "Package not installed or failed to init — staying on local backend.",
+        duration: 4000,
+      });
+    }
+  };
 
   // Live analysis (debounced) — runs on every edit, in <1ms via wasm.
   const runLive = useCallback(async (text: string) => {
@@ -154,6 +183,8 @@ const Optimizer = () => {
       ]);
       setAnalysis(a);
       setDecision(d);
+      // Refine the static route hint with the RuVector router (no-op if off).
+      setRouteHint(ruvectorActive() ? await refineRoute(text, a.route) : a.route);
     } catch {
       /* wasm not ready yet */
     }
@@ -183,6 +214,10 @@ const Optimizer = () => {
         bundleHash: r.receipt.bundle_hash,
       });
       setPriors(recall(raw));
+      // Reinforce the chosen route so the router learns this prompt→tier mapping.
+      if (r.accepted && routeHint) {
+        void reinforce(raw, routeHint.tier, routeHint.examples);
+      }
       toast({
         title: r.accepted ? "Prompt improved ✓" : "No improvement accepted",
         description: r.accepted
@@ -208,12 +243,19 @@ const Optimizer = () => {
     <div className="min-h-screen flex flex-col">
       <MainNav title="PromptOps Compiler" />
 
-      <div className="px-4 -mt-2 mb-2">
+      <div className="px-4 -mt-2 mb-2 flex items-center justify-between gap-2 flex-wrap">
         <p className="text-xs text-gray-500 flex items-center gap-2">
           <Cpu className="w-3.5 h-3.5 text-console-purple" />
           Rust→WASM prompt compiler {forgeVersion && <span className="text-console-purple">v{forgeVersion}</span>} ·
           deterministic · sub-millisecond · runs entirely in your browser
         </p>
+        <button
+          className={`console-button py-1 px-2 text-xs ${ruvectorOn ? "text-console-purple border-console-purple/40" : ""}`}
+          onClick={toggleRuvector}
+          title="Swap prompt-memory + routing onto ruvector-wasm (HNSW/ReasoningBank). Default off keeps the deterministic local path."
+        >
+          RuVector: {ruvectorOn ? "on" : "off"}
+        </button>
       </div>
 
       <main className="flex-1 flex flex-col lg:flex-row gap-4 p-4 pt-0">
@@ -261,8 +303,9 @@ const Optimizer = () => {
                 <span className="console-button py-1 px-2">{analysis.intent.task_type}</span>
                 <span className="console-button py-1 px-2">→ {analysis.intent.output_type}</span>
                 <span className="console-button py-1 px-2">audience: {analysis.intent.audience}</span>
-                <span className="console-button py-1 px-2 flex items-center gap-1">
-                  <Gauge className="w-3 h-3" /> route: {analysis.route.tier}
+                <span className="console-button py-1 px-2 flex items-center gap-1" title={(routeHint ?? analysis.route).rationale}>
+                  <Gauge className="w-3 h-3" /> route: {(routeHint ?? analysis.route).tier}
+                  {ruvectorOn && <span className="text-console-purple">·rv</span>}
                 </span>
               </div>
 

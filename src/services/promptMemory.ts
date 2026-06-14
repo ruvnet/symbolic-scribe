@@ -33,7 +33,8 @@
  */
 
 const STORE_KEY = "symbolic-scribe-prompt-memory";
-const EMBED_DIM = 256;
+/** Embedding width. Exported so swappable backends build matching vectors. */
+export const EMBED_DIM = 256;
 const MAX_ENTRIES = 500;
 
 export interface MemoryEntry {
@@ -125,32 +126,39 @@ export function cosine(a: number[], b: number[]): number {
   return dot; // both are L2-normalized
 }
 
+/** Load persisted entries (shared across backends so switching keeps history). */
+export function loadStoredEntries(): MemoryEntry[] {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    return raw ? (JSON.parse(raw) as MemoryEntry[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Persist entries (FIFO-capped) to shared storage. */
+export function persistEntries(entries: MemoryEntry[]): void {
+  try {
+    const capped =
+      entries.length > MAX_ENTRIES ? entries.slice(entries.length - MAX_ENTRIES) : entries;
+    localStorage.setItem(STORE_KEY, JSON.stringify(capped));
+  } catch {
+    /* storage full / unavailable — degrade silently */
+  }
+}
+
 class LocalBackend implements SimilarityBackend {
   private entries: MemoryEntry[] = [];
 
   constructor() {
-    this.load();
-  }
-
-  private load() {
-    try {
-      const raw = localStorage.getItem(STORE_KEY);
-      this.entries = raw ? (JSON.parse(raw) as MemoryEntry[]) : [];
-    } catch {
-      this.entries = [];
-    }
+    this.entries = loadStoredEntries();
   }
 
   private persist() {
-    try {
-      // Cap the store (FIFO) so localStorage never overflows.
-      if (this.entries.length > MAX_ENTRIES) {
-        this.entries = this.entries.slice(this.entries.length - MAX_ENTRIES);
-      }
-      localStorage.setItem(STORE_KEY, JSON.stringify(this.entries));
-    } catch {
-      /* storage full / unavailable — degrade silently */
+    if (this.entries.length > MAX_ENTRIES) {
+      this.entries = this.entries.slice(this.entries.length - MAX_ENTRIES);
     }
+    persistEntries(this.entries);
   }
 
   upsert(id: string, _vector: number[], meta: MemoryEntry) {

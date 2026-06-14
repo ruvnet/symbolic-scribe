@@ -29,9 +29,10 @@ raw prompt → AST + intent + constraints → SynthLang compression
   recalls similar prior cases, feeding `prior_failure_similarity` back into the
   firewall — so prompts resembling past attacks score higher risk over time. The
   similarity backend is swappable: a deterministic local embedder + cosine works
-  offline today, and [`ruvnet/RuVector`](https://github.com/ruvnet/RuVector)
-  (in-browser HNSW + ReasoningBank) drops in for O(log n) recall and trajectory
-  learning at scale.
+  offline by default, and [`ruvnet/RuVector`](https://github.com/ruvnet/RuVector)
+  is **wired behind a feature flag** — `ruvector-wasm` (`VectorDB`) for recall and
+  `@ruvector/ruvllm-wasm` (`HnswRouterWasm`) to back the model `RouteHint`. Toggle
+  "RuVector: on" on `/optimize`. See [`docs/ruvector-integration.md`](docs/ruvector-integration.md).
 
 Build & test the core:
 
