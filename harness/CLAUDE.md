@@ -31,4 +31,4 @@ My AI agent harness
 
 ## Architecture
 
-This harness uses [@ruflo/kernel](https://www.npmjs.com/package/@ruflo/kernel) — a Rust-compiled WASM module with a NAPI-RS native fallback — so the same code runs identically on every platform.
+This harness uses [@metaharness/kernel](https://www.npmjs.com/package/@metaharness/kernel) — a Rust-compiled WASM module with a NAPI-RS native fallback — so the same code runs identically on every platform.

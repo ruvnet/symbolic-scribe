@@ -19,16 +19,19 @@
     ".claude/skills/memory-inspect/SKILL.md": "996b09e2dd12f68a589d94de0cbaef1522a30c912157cbbd6557abd3c4fd1ff3",
     ".claude/skills/plan-change/SKILL.md": "84e1c44ca264b999ebf80cd8fa0e5ebf554275bbd8023b1530ad053a44482e30",
     ".claude-plugin/plugin.json": "ea5ae48c453765278b841de2edf1bf643ff37a2513af68093f896db6eb472d2a",
-    "CLAUDE.md": "86ff118642abdf246e1912e9525a9d2ec5e09c20c62afeb39982f338e4eb3b13",
-    "package.json": "c3447edfb9e272df6770b146bb590432cede958b64662c4031f0fe911ea03e40",
+    "bin/cli.js": "d63e0b9df393754df7d7d4bb99f03586eafa5cfc8cb6ff889e415ff6c0cba78c",
+    "CLAUDE.md": "63a44d232edeaa4966be289a1cea967d72a29dbb7f9a1af98df1788a040f4bdb",
+    "package.json": "e76de5b34b1ae1a61296baf010d2970b0f6eb59b59d36644bed8fbb3bfe74962",
     "README.md": "27f567387ccea69794ff973f54422c0f8f7e984857f69e14727fb780fc7fd95f",
     "src/agents/benchmarker.ts": "c66ec48b5ac34917ebed57cef5841b294c9fdf277c2afcd47498946f0f5193e3",
     "src/agents/maintainer.ts": "a8ef4acaf63705ba26faeffd1a9633eacce029bebaa3661e5d83bcd3ba6043ca",
     "src/agents/release.ts": "cbe319532fe5554d314576e81278365b46c6f7340d343264d10b15228343b4b9",
     "src/agents/security.ts": "bc2397bc02c0151507ae3046c29db1d898e9040b1613f2a192bca95889926279",
-    "src/init.ts": "7c8592cec00056f126ed8cad416f0472f2cc7b5f5162ea2480d2ea09a4f41e08"
+    "src/init.ts": "cdf75f27e52bc2123628670b63ba1e614a18ecdf51f2867807d8e8e36af7a8a7",
+    "tsconfig.json": "8b4e730a1aa39162ac574455d7a98e1881f5313ca80ffe503b9652dcf0c76b9d",
+    "__tests__/smoke.test.ts": "37386c7e4fff7bed9d695037b5368ba035bf6f361a4359a60ad134ff21f41d02"
   },
-  "generated_at": "2026-06-14T23:41:40.107Z",
+  "generated_at": "2026-06-15T02:05:42.632Z",
   "meta": {
     "surface": "cli"
   }
