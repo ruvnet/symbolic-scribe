@@ -222,7 +222,10 @@ const Optimizer = () => {
       });
       setPriors(recall(raw));
       // Reinforce the chosen route so the router learns this prompt→tier mapping.
-      if (r.accepted && routeHint) {
+      // Gated by the RuVector flag: without it, reinforce() would still spin up
+      // the router wasm on every accepted compile (and log a load error when the
+      // optional package isn't served), for a feature the user hasn't enabled.
+      if (r.accepted && routeHint && ruvectorActive()) {
         void reinforce(raw, routeHint.tier, routeHint.examples);
       }
       toast({
