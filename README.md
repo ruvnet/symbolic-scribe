@@ -2,6 +2,10 @@
 
 A specialized prompt engineering tool that uses mathematical frameworks to generate precise, structured prompts for AI interactions.
 
+**▶ Live web UI: [ruvnet.github.io/symbolic-scribe](https://ruvnet.github.io/symbolic-scribe/)**
+
+[![Symbolic Scribe — PromptOps Compiler optimizing a prompt](docs/optimizer-screenshot.png)](https://ruvnet.github.io/symbolic-scribe/)
+
 ## PromptOps Compiler (Rust → WASM)
 
 Symbolic Scribe is also a **compiler for prompts**. The `/optimize` page takes a
