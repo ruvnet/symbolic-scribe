@@ -123,7 +123,19 @@ const decisionStyle: Record<string, { color: string; icon: JSX.Element; label: s
 };
 
 const Optimizer = () => {
-  const [raw, setRaw] = useState(SAMPLE_PROMPT);
+  // A template opened from the Templates page hands its body off via sessionStorage.
+  const [raw, setRaw] = useState(() => {
+    try {
+      const pre = sessionStorage.getItem("promptforge:compiler-prefill");
+      if (pre) {
+        sessionStorage.removeItem("promptforge:compiler-prefill");
+        return pre;
+      }
+    } catch {
+      /* ignore */
+    }
+    return SAMPLE_PROMPT;
+  });
   const [liveTokens, setLiveTokens] = useState(0);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [result, setResult] = useState<OptimizeResult | null>(null);
