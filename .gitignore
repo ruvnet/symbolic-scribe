@@ -33,3 +33,7 @@ wasm/prompt-forge/target
 # Live benchmark proofs — non-deterministic + carry per-run USD cost data
 bench/*.json
 
+# RuVector local store written at runtime by the harness / app
+ruvector.db
+**/ruvector.db
+
