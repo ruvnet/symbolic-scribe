@@ -2,6 +2,56 @@
 
 A specialized prompt engineering tool that uses mathematical frameworks to generate precise, structured prompts for AI interactions.
 
+## PromptOps Compiler (Rust → WASM)
+
+Symbolic Scribe is also a **compiler for prompts**. The `/optimize` page takes a
+loose natural-language prompt and compiles it — entirely in your browser — into a
+structured, scored, compressed, risk-checked, and cryptographically signed
+artifact. The deterministic core is a Rust crate compiled to WebAssembly
+(`wasm/prompt-forge`, exposed via `src/services/promptForge.ts`):
+
+```
+raw prompt → AST + intent + constraints → SynthLang compression
+           → safety / ambiguity / schema lint → symbolic-form compile
+           → 7-objective score + Pareto frontier → risk firewall
+           → SHA-256 + HMAC witness receipt
+```
+
+- **Sub-millisecond, deterministic, offline** — runs on every keystroke, no
+  prompt text leaves the browser for the core analysis.
+- **Multi-objective optimization** with a hard rule: a prompt is only "improved"
+  if it beats baseline **without lowering accuracy, safety, or schema validity**.
+- **Live eval matrix** (`src/services/promptEval.ts`) closes the loop: it runs the
+  optimizer's Pareto-frontier candidates against real OpenRouter models over an
+  editable test suite, grades outputs (schema validity, assertions, refusals,
+  length), and **replaces the static accuracy/schema/cross-model-stability
+  proxies with measured numbers** — then re-ranks with the same weights. The
+  model call is injectable, so grading/aggregation is unit-tested offline.
+- **Drift report** proves numbers/entities/constraints survive compression.
+- **Prompt firewall** classifies injection / secret-exposure / tool-abuse risk
+  and returns an allow / log / approve / block decision.
+- **Signed receipts** make every winning prompt auditable.
+- **Learning memory** (`src/services/promptMemory.ts`) records every outcome and
+  recalls similar prior cases, feeding `prior_failure_similarity` back into the
+  firewall — so prompts resembling past attacks score higher risk over time. The
+  similarity backend is swappable: a deterministic local embedder + cosine works
+  offline by default, and [`ruvnet/RuVector`](https://github.com/ruvnet/RuVector)
+  is **wired behind a feature flag** — `ruvector-wasm` (`VectorDB`) for recall and
+  `@ruvector/ruvllm-wasm` (`HnswRouterWasm`) to back the model `RouteHint`. Toggle
+  "RuVector: on" on `/optimize`. See [`docs/ruvector-integration.md`](docs/ruvector-integration.md).
+
+Build & test the core:
+
+```bash
+npm run build:wasm     # compile Rust → src/wasm/pkg (needs rustup + wasm-bindgen 0.2.100)
+npm run test:wasm      # 75 native unit tests
+npm run bench:wasm     # latency benchmark
+```
+
+The generated `src/wasm/pkg/` is committed, so `npm run build` works without a
+Rust toolchain. See `wasm/prompt-forge/README.md` and
+`docs/adr/ADR-001-promptops-compiler.md` for details.
+
 ## Key Features & Benefits
 
 ### Mathematical Framework Integration
