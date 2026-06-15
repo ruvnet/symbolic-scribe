@@ -179,11 +179,9 @@ fn strip_filler(s: &str) -> String {
             // it bounded and deterministic.
             let mut work = line.to_string();
             for _ in 0..4 {
-                let before = work.clone();
-                for (from, to) in FILLER {
-                    work = replace_ci_word(&work, from, to);
-                }
-                if work == before {
+                let (next, changed) = apply_fillers_once(&work);
+                work = next;
+                if !changed {
                     break;
                 }
             }
@@ -205,25 +203,42 @@ fn is_protected(line: &str) -> bool {
         || t.starts_with("- \"")
 }
 
-/// Case-insensitive replacement that only matches at a word boundary start.
-fn replace_ci_word(haystack: &str, from: &str, to: &str) -> String {
+/// Apply *all* filler phrases to a line in a single left-to-right pass.
+///
+/// The previous implementation called a per-phrase replacer for each of the ~40
+/// fillers, and each call allocated a fresh `to_ascii_lowercase()` copy of the
+/// whole line — O(fillers × line) allocation per cascade pass, which dominated
+/// `compress`/`optimize` latency (a single 9 KB line lowercased ~170×). Here we
+/// lowercase once and, at each word-boundary position, test the fillers
+/// (declared longest-first, so the longest wins) and splice in the replacement.
+/// Returns the rewritten line and whether anything changed.
+fn apply_fillers_once(haystack: &str) -> (String, bool) {
     let lower = haystack.to_ascii_lowercase();
+    let bytes = haystack.as_bytes();
     let mut result = String::with_capacity(haystack.len());
     let mut i = 0;
+    let mut changed = false;
     while i < haystack.len() {
-        if lower[i..].starts_with(from) {
-            let boundary_ok = i == 0 || !haystack.as_bytes()[i - 1].is_ascii_alphanumeric();
-            if boundary_ok {
-                result.push_str(to);
-                i += from.len();
-                continue;
+        let boundary_ok = i == 0 || !bytes[i - 1].is_ascii_alphanumeric();
+        let mut matched = false;
+        if boundary_ok {
+            for (from, to) in FILLER {
+                if lower[i..].starts_with(from) {
+                    result.push_str(to);
+                    i += from.len();
+                    matched = true;
+                    changed = true;
+                    break;
+                }
             }
         }
-        let ch_len = haystack[i..].chars().next().map_or(1, |c| c.len_utf8());
-        result.push_str(&haystack[i..i + ch_len]);
-        i += ch_len;
+        if !matched {
+            let ch_len = haystack[i..].chars().next().map_or(1, |c| c.len_utf8());
+            result.push_str(&haystack[i..i + ch_len]);
+            i += ch_len;
+        }
     }
-    result
+    (result, changed)
 }
 
 fn capitalize_first(s: &str) -> String {
