@@ -66,13 +66,16 @@ The compiler is built to run on every keystroke. Native `--release` latency
 | `count_tokens` (medium) | ~230 ns | ~4.3 M/s |
 | `analyze` (medium) | ~36 µs | ~28 K/s |
 | `compress` (medium) | ~50 µs | ~20 K/s |
-| `optimize` (medium) | ~397 µs | ~2.5 K/s |
-| `optimize` (large, ~2K tok) | ~5.7 ms | ~174/s |
+| `optimize` (medium) | ~485 µs | ~2.1 K/s |
+| `optimize` (large, ~2K tok) | ~2.5 ms | ~400/s |
 
-The `compress`/`optimize` paths were tuned to lowercase each line once per pass
-instead of once per filler phrase — a **5.4× `compress`** and **2.1×
-`optimize(large)`** speedup. The UI debounces `analyze()` to ~120 ms, leaving
-ample headroom.
+Two tuning passes landed here. First, `compress` was changed to lowercase each
+line **once per pass** instead of once per filler phrase (**5.4×** `compress`).
+Second, `optimize_internal` now analyzes each distinct text **exactly once**
+instead of re-analyzing `raw` and re-parsing the compressed text
+(**1.9×** `optimize(large)`). Both keep output byte-identical. The committed
+`src/wasm/pkg` is rebuilt so the browser app gets these gains; the UI debounces
+`analyze()` to ~120 ms, leaving ample headroom.
 
 ### Live benchmark against OpenRouter `fusion`
 
