@@ -1,7 +1,15 @@
 {
   "name": "symbolic-scribe-harness",
-  "version": "0.1.0",
-  "description": "My AI agent harness",
+  "version": "0.1.1",
+  "description": "Repo-aware agent harness for Symbolic Scribe — maintainer/benchmarker/release/security agents with doctor, repo-triage, and release-check commands.",
+  "keywords": ["agent-harness", "metaharness", "claude-code", "symbolic-scribe", "mcp", "ai-agent"],
+  "homepage": "https://github.com/ruvnet/symbolic-scribe/tree/main/harness#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ruvnet/symbolic-scribe.git",
+    "directory": "harness"
+  },
+  "license": "MIT",
   "type": "module",
   "bin": {
     "symbolic-scribe-harness": "./bin/cli.js"
