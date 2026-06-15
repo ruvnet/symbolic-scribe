@@ -1,9 +1,10 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Compress only → returns the SynthLang-style `.synth` text + pass log.
+ * Drift report between two prompts → `DriftReport` JSON. Confirms that a
+ * transformed prompt preserves numbers, entities, and constraints.
  */
-export function compress(raw: string): string;
+export function drift_report(original: string, transformed: string): string;
 /**
  * Fast token estimate for `text`.
  */
@@ -13,11 +14,14 @@ export function count_tokens(text: string): number;
  */
 export function version(): string;
 /**
- * Re-rank a host-supplied set of scored candidates by Pareto dominance.
- * Input: JSON array of `Candidate`. Output: same array with `on_frontier` set,
- * sorted by composite score descending.
+ * Full optimization pass → `OptimizeResult` JSON (compiled form, candidates,
+ * Pareto frontier, diff, and a signed receipt).
  */
-export function rank_pareto(candidates_json: string): string;
+export function optimize(raw: string, opts_json: string): string;
+/**
+ * Full static analysis → `Analysis` JSON (`prompt.ast.json`).
+ */
+export function analyze(raw: string, opts_json: string): string;
 /**
  * Prompt firewall: classify a prompt/context for injection, secret-exposure,
  * and tool-abuse risk and return an allow/log/approve/block decision
@@ -25,9 +29,19 @@ export function rank_pareto(candidates_json: string): string;
  */
 export function firewall(raw: string, ctx_json: string): string;
 /**
+ * Redact detected secrets/canaries from text before it reaches a model.
+ * Returns `{ "text": <scrubbed>, "redactions": <n> }`.
+ */
+export function scrub_secrets(raw: string): string;
+/**
  * Verify a witness receipt (JSON) against a key. Returns `"true"`/`"false"`.
  */
 export function verify_receipt(receipt_json: string, witness_key: string): string;
+/**
+ * The canonical multi-objective weights (single source of truth for hosts that
+ * recompute composites from *measured* eval numbers).
+ */
+export function weights(): string;
 /**
  * Recompute a `Score`'s composite from its (possibly host-overwritten)
  * component fields, using the canonical weights. Lets the live eval matrix
@@ -36,29 +50,15 @@ export function verify_receipt(receipt_json: string, witness_key: string): strin
  */
 export function rescore(score_json: string): string;
 /**
- * Drift report between two prompts → `DriftReport` JSON. Confirms that a
- * transformed prompt preserves numbers, entities, and constraints.
+ * Re-rank a host-supplied set of scored candidates by Pareto dominance.
+ * Input: JSON array of `Candidate`. Output: same array with `on_frontier` set,
+ * sorted by composite score descending.
  */
-export function drift_report(original: string, transformed: string): string;
+export function rank_pareto(candidates_json: string): string;
 /**
- * Full optimization pass → `OptimizeResult` JSON (compiled form, candidates,
- * Pareto frontier, diff, and a signed receipt).
+ * Compress only → returns the SynthLang-style `.synth` text + pass log.
  */
-export function optimize(raw: string, opts_json: string): string;
-/**
- * The canonical multi-objective weights (single source of truth for hosts that
- * recompute composites from *measured* eval numbers).
- */
-export function weights(): string;
-/**
- * Full static analysis → `Analysis` JSON (`prompt.ast.json`).
- */
-export function analyze(raw: string, opts_json: string): string;
-/**
- * Redact detected secrets/canaries from text before it reaches a model.
- * Returns `{ "text": <scrubbed>, "redactions": <n> }`.
- */
-export function scrub_secrets(raw: string): string;
+export function compress(raw: string): string;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 

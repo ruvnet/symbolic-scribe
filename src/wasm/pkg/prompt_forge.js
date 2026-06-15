@@ -83,26 +83,30 @@ function getStringFromWasm0(ptr, len) {
     return cachedTextDecoder.decode(getUint8ArrayMemory0().subarray(ptr, ptr + len));
 }
 /**
- * Compress only → returns the SynthLang-style `.synth` text + pass log.
- * @param {string} raw
+ * Drift report between two prompts → `DriftReport` JSON. Confirms that a
+ * transformed prompt preserves numbers, entities, and constraints.
+ * @param {string} original
+ * @param {string} transformed
  * @returns {string}
  */
-export function compress(raw) {
-    let deferred2_0;
-    let deferred2_1;
+export function drift_report(original, transformed) {
+    let deferred3_0;
+    let deferred3_1;
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passStringToWasm0(raw, wasm.__wbindgen_export_0, wasm.__wbindgen_export_1);
+        const ptr0 = passStringToWasm0(original, wasm.__wbindgen_export_0, wasm.__wbindgen_export_1);
         const len0 = WASM_VECTOR_LEN;
-        wasm.compress(retptr, ptr0, len0);
+        const ptr1 = passStringToWasm0(transformed, wasm.__wbindgen_export_0, wasm.__wbindgen_export_1);
+        const len1 = WASM_VECTOR_LEN;
+        wasm.drift_report(retptr, ptr0, len0, ptr1, len1);
         var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
         var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-        deferred2_0 = r0;
-        deferred2_1 = r1;
+        deferred3_0 = r0;
+        deferred3_1 = r1;
         return getStringFromWasm0(r0, r1);
     } finally {
         wasm.__wbindgen_add_to_stack_pointer(16);
-        wasm.__wbindgen_export_2(deferred2_0, deferred2_1, 1);
+        wasm.__wbindgen_export_2(deferred3_0, deferred3_1, 1);
     }
 }
 
@@ -140,28 +144,57 @@ export function version() {
 }
 
 /**
- * Re-rank a host-supplied set of scored candidates by Pareto dominance.
- * Input: JSON array of `Candidate`. Output: same array with `on_frontier` set,
- * sorted by composite score descending.
- * @param {string} candidates_json
+ * Full optimization pass → `OptimizeResult` JSON (compiled form, candidates,
+ * Pareto frontier, diff, and a signed receipt).
+ * @param {string} raw
+ * @param {string} opts_json
  * @returns {string}
  */
-export function rank_pareto(candidates_json) {
-    let deferred2_0;
-    let deferred2_1;
+export function optimize(raw, opts_json) {
+    let deferred3_0;
+    let deferred3_1;
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passStringToWasm0(candidates_json, wasm.__wbindgen_export_0, wasm.__wbindgen_export_1);
+        const ptr0 = passStringToWasm0(raw, wasm.__wbindgen_export_0, wasm.__wbindgen_export_1);
         const len0 = WASM_VECTOR_LEN;
-        wasm.rank_pareto(retptr, ptr0, len0);
+        const ptr1 = passStringToWasm0(opts_json, wasm.__wbindgen_export_0, wasm.__wbindgen_export_1);
+        const len1 = WASM_VECTOR_LEN;
+        wasm.optimize(retptr, ptr0, len0, ptr1, len1);
         var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
         var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-        deferred2_0 = r0;
-        deferred2_1 = r1;
+        deferred3_0 = r0;
+        deferred3_1 = r1;
         return getStringFromWasm0(r0, r1);
     } finally {
         wasm.__wbindgen_add_to_stack_pointer(16);
-        wasm.__wbindgen_export_2(deferred2_0, deferred2_1, 1);
+        wasm.__wbindgen_export_2(deferred3_0, deferred3_1, 1);
+    }
+}
+
+/**
+ * Full static analysis → `Analysis` JSON (`prompt.ast.json`).
+ * @param {string} raw
+ * @param {string} opts_json
+ * @returns {string}
+ */
+export function analyze(raw, opts_json) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(raw, wasm.__wbindgen_export_0, wasm.__wbindgen_export_1);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(opts_json, wasm.__wbindgen_export_0, wasm.__wbindgen_export_1);
+        const len1 = WASM_VECTOR_LEN;
+        wasm.analyze(retptr, ptr0, len0, ptr1, len1);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred3_0 = r0;
+        deferred3_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export_2(deferred3_0, deferred3_1, 1);
     }
 }
 
@@ -195,6 +228,31 @@ export function firewall(raw, ctx_json) {
 }
 
 /**
+ * Redact detected secrets/canaries from text before it reaches a model.
+ * Returns `{ "text": <scrubbed>, "redactions": <n> }`.
+ * @param {string} raw
+ * @returns {string}
+ */
+export function scrub_secrets(raw) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(raw, wasm.__wbindgen_export_0, wasm.__wbindgen_export_1);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.scrub_secrets(retptr, ptr0, len0);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred2_0 = r0;
+        deferred2_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export_2(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
  * Verify a witness receipt (JSON) against a key. Returns `"true"`/`"false"`.
  * @param {string} receipt_json
  * @param {string} witness_key
@@ -210,89 +268,6 @@ export function verify_receipt(receipt_json, witness_key) {
         const ptr1 = passStringToWasm0(witness_key, wasm.__wbindgen_export_0, wasm.__wbindgen_export_1);
         const len1 = WASM_VECTOR_LEN;
         wasm.verify_receipt(retptr, ptr0, len0, ptr1, len1);
-        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-        deferred3_0 = r0;
-        deferred3_1 = r1;
-        return getStringFromWasm0(r0, r1);
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-        wasm.__wbindgen_export_2(deferred3_0, deferred3_1, 1);
-    }
-}
-
-/**
- * Recompute a `Score`'s composite from its (possibly host-overwritten)
- * component fields, using the canonical weights. Lets the live eval matrix
- * replace the static accuracy/schema/stability proxies with measured values
- * and get a consistent composite back. Input/Output: `Score` JSON.
- * @param {string} score_json
- * @returns {string}
- */
-export function rescore(score_json) {
-    let deferred2_0;
-    let deferred2_1;
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passStringToWasm0(score_json, wasm.__wbindgen_export_0, wasm.__wbindgen_export_1);
-        const len0 = WASM_VECTOR_LEN;
-        wasm.rescore(retptr, ptr0, len0);
-        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-        deferred2_0 = r0;
-        deferred2_1 = r1;
-        return getStringFromWasm0(r0, r1);
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-        wasm.__wbindgen_export_2(deferred2_0, deferred2_1, 1);
-    }
-}
-
-/**
- * Drift report between two prompts → `DriftReport` JSON. Confirms that a
- * transformed prompt preserves numbers, entities, and constraints.
- * @param {string} original
- * @param {string} transformed
- * @returns {string}
- */
-export function drift_report(original, transformed) {
-    let deferred3_0;
-    let deferred3_1;
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passStringToWasm0(original, wasm.__wbindgen_export_0, wasm.__wbindgen_export_1);
-        const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(transformed, wasm.__wbindgen_export_0, wasm.__wbindgen_export_1);
-        const len1 = WASM_VECTOR_LEN;
-        wasm.drift_report(retptr, ptr0, len0, ptr1, len1);
-        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-        deferred3_0 = r0;
-        deferred3_1 = r1;
-        return getStringFromWasm0(r0, r1);
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-        wasm.__wbindgen_export_2(deferred3_0, deferred3_1, 1);
-    }
-}
-
-/**
- * Full optimization pass → `OptimizeResult` JSON (compiled form, candidates,
- * Pareto frontier, diff, and a signed receipt).
- * @param {string} raw
- * @param {string} opts_json
- * @returns {string}
- */
-export function optimize(raw, opts_json) {
-    let deferred3_0;
-    let deferred3_1;
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passStringToWasm0(raw, wasm.__wbindgen_export_0, wasm.__wbindgen_export_1);
-        const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(opts_json, wasm.__wbindgen_export_0, wasm.__wbindgen_export_1);
-        const len1 = WASM_VECTOR_LEN;
-        wasm.optimize(retptr, ptr0, len0, ptr1, len1);
         var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
         var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
         deferred3_0 = r0;
@@ -327,46 +302,71 @@ export function weights() {
 }
 
 /**
- * Full static analysis → `Analysis` JSON (`prompt.ast.json`).
- * @param {string} raw
- * @param {string} opts_json
+ * Recompute a `Score`'s composite from its (possibly host-overwritten)
+ * component fields, using the canonical weights. Lets the live eval matrix
+ * replace the static accuracy/schema/stability proxies with measured values
+ * and get a consistent composite back. Input/Output: `Score` JSON.
+ * @param {string} score_json
  * @returns {string}
  */
-export function analyze(raw, opts_json) {
-    let deferred3_0;
-    let deferred3_1;
+export function rescore(score_json) {
+    let deferred2_0;
+    let deferred2_1;
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passStringToWasm0(raw, wasm.__wbindgen_export_0, wasm.__wbindgen_export_1);
+        const ptr0 = passStringToWasm0(score_json, wasm.__wbindgen_export_0, wasm.__wbindgen_export_1);
         const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(opts_json, wasm.__wbindgen_export_0, wasm.__wbindgen_export_1);
-        const len1 = WASM_VECTOR_LEN;
-        wasm.analyze(retptr, ptr0, len0, ptr1, len1);
+        wasm.rescore(retptr, ptr0, len0);
         var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
         var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-        deferred3_0 = r0;
-        deferred3_1 = r1;
+        deferred2_0 = r0;
+        deferred2_1 = r1;
         return getStringFromWasm0(r0, r1);
     } finally {
         wasm.__wbindgen_add_to_stack_pointer(16);
-        wasm.__wbindgen_export_2(deferred3_0, deferred3_1, 1);
+        wasm.__wbindgen_export_2(deferred2_0, deferred2_1, 1);
     }
 }
 
 /**
- * Redact detected secrets/canaries from text before it reaches a model.
- * Returns `{ "text": <scrubbed>, "redactions": <n> }`.
+ * Re-rank a host-supplied set of scored candidates by Pareto dominance.
+ * Input: JSON array of `Candidate`. Output: same array with `on_frontier` set,
+ * sorted by composite score descending.
+ * @param {string} candidates_json
+ * @returns {string}
+ */
+export function rank_pareto(candidates_json) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(candidates_json, wasm.__wbindgen_export_0, wasm.__wbindgen_export_1);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.rank_pareto(retptr, ptr0, len0);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred2_0 = r0;
+        deferred2_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export_2(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * Compress only → returns the SynthLang-style `.synth` text + pass log.
  * @param {string} raw
  * @returns {string}
  */
-export function scrub_secrets(raw) {
+export function compress(raw) {
     let deferred2_0;
     let deferred2_1;
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
         const ptr0 = passStringToWasm0(raw, wasm.__wbindgen_export_0, wasm.__wbindgen_export_1);
         const len0 = WASM_VECTOR_LEN;
-        wasm.scrub_secrets(retptr, ptr0, len0);
+        wasm.compress(retptr, ptr0, len0);
         var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
         var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
         deferred2_0 = r0;

@@ -161,6 +161,12 @@ fn optimize_internal(raw: &str, opts: &Options) -> OptimizeResult {
 
     // --- Generate candidate variants (the search space) ---
     let comp = compress::compress(raw);
+    // Analyze the compressed text exactly once and reuse it everywhere below:
+    // for the compile-from-compressed parse AND for the "compressed" candidate's
+    // score. (Previously the compressed text was parsed twice — once here, once
+    // again inside make_candidate — and `raw` was fully analyzed a second time
+    // for the "original" candidate even though `base_analysis` already had it.)
+    let comp_analysis = analyze_internal(&comp.text, opts);
 
     // Compile a symbolic form from the *original* and from the *compressed*
     // parse, so the optimizer can choose structure, compression, or both.
@@ -171,15 +177,11 @@ fn optimize_internal(raw: &str, opts: &Options) -> OptimizeResult {
         &base_analysis.schema,
         opts.token_budget,
     );
-    let comp_sections = ast::parse(&comp.text);
-    let comp_cons = constraints::extract(&comp.text);
-    let comp_schema = schema::analyze(&comp.text);
-    let comp_intent = intent::parse(&comp.text);
     let compiled_from_compressed = compile::compile(
-        &comp_sections,
-        &comp_intent,
-        &comp_cons,
-        &comp_schema,
+        &comp_analysis.sections,
+        &comp_analysis.intent,
+        &comp_analysis.constraints,
+        &comp_analysis.schema,
         opts.token_budget,
     );
 
@@ -191,8 +193,8 @@ fn optimize_internal(raw: &str, opts: &Options) -> OptimizeResult {
     // artifact, not a regression. This lets the optimizer pursue token/latency/
     // cost gains while honoring the hard no-regression rule.
     let mut candidates: Vec<Candidate> = vec![
-        make_candidate("original", raw, opts, None),
-        make_candidate("compressed", &comp.text, opts, Some(&baseline_score)),
+        candidate_from_score("original", raw, baseline_score.clone(), None),
+        candidate_from_score("compressed", &comp.text, comp_analysis.score.clone(), Some(&baseline_score)),
     ];
     // The compiled symbolic form adds a fixed ROLE/TASK/.../QUALITY-BAR scaffold.
     // For substantial prompts that structure is worth its tokens; for trivially
@@ -310,7 +312,13 @@ fn optimize_internal(raw: &str, opts: &Options) -> OptimizeResult {
 }
 
 fn make_candidate(label: &str, text: &str, opts: &Options, floor: Option<&Score>) -> Candidate {
-    let mut score = score_text(text, opts);
+    candidate_from_score(label, text, score_text(text, opts), floor)
+}
+
+/// Build a candidate from an already-computed score, applying the optional
+/// quality floor. Lets callers reuse an existing `analyze`/`score` result
+/// instead of re-analyzing the same text.
+fn candidate_from_score(label: &str, text: &str, mut score: Score, floor: Option<&Score>) -> Candidate {
     if let Some(f) = floor {
         // Meaning-preserving transforms (compression / compilation) cannot truly
         // reduce ANY quality objective — only the *efficiency* objectives
