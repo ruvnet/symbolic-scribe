@@ -1,28 +1,41 @@
 # See https://fly.io/docs/app-guides/continuous-deployment-with-github-actions/
+#
+# The Fly token is fetched from GCP Secret Manager (cognitum-20260110/FLYIO_API_KEY)
+# with keyless Workload Identity Federation. There is no GitHub secret. The WIF
+# provider only accepts push/workflow_dispatch runs of this workflow on the
+# default branch, so this job never runs on pull_request.
 
 name: Fly Deploy
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
+
 jobs:
   deploy:
     name: Deploy app
     runs-on: ubuntu-latest
     concurrency: deploy-group    # optional: ensure only one action runs at a time
-    env:
-      # Secrets cannot be used in `if:` directly; route through env. When the
-      # FLY_API_TOKEN repo secret is not configured (forks, or before the owner
-      # adds it), the deploy steps are skipped instead of failing (issue #11).
-      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+    permissions:
+      contents: read
+      id-token: write
     steps:
-      - name: Skip notice (FLY_API_TOKEN not configured)
-        if: ${{ env.FLY_API_TOKEN == '' }}
-        run: |
-          echo "::notice::FLY_API_TOKEN secret is not set; skipping Fly deploy (see issue 11)."
       - uses: actions/checkout@v4
-        if: ${{ env.FLY_API_TOKEN != '' }}
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/186366152200/locations/global/workloadIdentityPools/github-ruvnet-ci/providers/symbolic-scribe
+          service_account: ci-symbolic-scribe@cognitum-20260110.iam.gserviceaccount.com
+      - id: gsm
+        uses: google-github-actions/get-secretmanager-secrets@v2
+        with:
+          secrets: |-
+            fly:cognitum-20260110/FLYIO_API_KEY
       - uses: superfly/flyctl-actions/setup-flyctl@master
-        if: ${{ env.FLY_API_TOKEN != '' }}
+      - name: Fly auth smoke test
+        run: flyctl auth whoami
+        env:
+          FLY_API_TOKEN: ${{ steps.gsm.outputs.fly }}
       - run: flyctl deploy --remote-only
-        if: ${{ env.FLY_API_TOKEN != '' }}
+        env:
+          FLY_API_TOKEN: ${{ steps.gsm.outputs.fly }}
