@@ -10,9 +10,18 @@ jobs:
     name: Deploy app
     runs-on: ubuntu-latest
     concurrency: deploy-group    # optional: ensure only one action runs at a time
+    env:
+      # Secrets cannot be used in `if:` directly; route through env. When the
+      # FLY_API_TOKEN repo secret is not configured (forks, or before the owner
+      # adds it), the deploy steps are skipped instead of failing (issue #11).
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
     steps:
+      - name: Skip notice (FLY_API_TOKEN not configured)
+        if: ${{ env.FLY_API_TOKEN == '' }}
+        run: echo "::notice::FLY_API_TOKEN secret is not set; skipping Fly deploy (see issue #11)."
       - uses: actions/checkout@v4
+        if: ${{ env.FLY_API_TOKEN != '' }}
       - uses: superfly/flyctl-actions/setup-flyctl@master
+        if: ${{ env.FLY_API_TOKEN != '' }}
       - run: flyctl deploy --remote-only
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        if: ${{ env.FLY_API_TOKEN != '' }}
