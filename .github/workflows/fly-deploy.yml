@@ -18,7 +18,8 @@ jobs:
     steps:
       - name: Skip notice (FLY_API_TOKEN not configured)
         if: ${{ env.FLY_API_TOKEN == '' }}
-        run: echo "::notice::FLY_API_TOKEN secret is not set; skipping Fly deploy (see issue #11)."
+        run: |
+          echo "::notice::FLY_API_TOKEN secret is not set; skipping Fly deploy (see issue 11)."
       - uses: actions/checkout@v4
         if: ${{ env.FLY_API_TOKEN != '' }}
       - uses: superfly/flyctl-actions/setup-flyctl@master
