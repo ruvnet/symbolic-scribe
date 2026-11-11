@@ -26,3 +26,21 @@ jobs:
           node-version: 22
       - run: npm ci --ignore-scripts
       - run: npm audit --audit-level=critical --omit=dev
+
+  docker:
+    name: docker build + smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t symbolic-scribe:ci .
+      - name: Smoke test (nginx serves the built index on :8080)
+        run: |
+          docker run -d --name app -p 8080:8080 symbolic-scribe:ci
+          for i in $(seq 1 20); do curl -fsS http://localhost:8080/ -o index.html && break; sleep 1; done
+          grep -q '<div id="root">' index.html
+          asset=$(grep -o '/assets/[^"]*\.js' index.html | head -1)
+          test -n "$asset"
+          curl -fsS "http://localhost:8080$asset" -o /dev/null
+          # SPA fallback: client-side routes resolve to index.html
+          curl -fsS http://localhost:8080/optimize | grep -q '<div id="root">'
+          docker rm -f app
